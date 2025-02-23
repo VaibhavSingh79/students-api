@@ -1,0 +1,4 @@
+env: "dev"  
+storaage_path: "storage/storage.db" # Path to the database file
+http_server:
+  address: "localhost8082" # Address to bind the server
