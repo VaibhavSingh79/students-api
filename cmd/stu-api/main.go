@@ -30,6 +30,7 @@ func main() {
 	router := http.NewServeMux() //Mux used to create a new HTTP request, responsible for directing incoming HTTP requests to diff handlers based on urls
 
 	router.HandleFunc("POST /api/students", student.New(storage))
+	router.HandleFunc("GET /api/students/{id}", student.GetById(storage))
 
 	//setup server
 	server := http.Server{
