@@ -12,6 +12,7 @@ import (
 
 	"github.com/VaibhavSingh79/stu-api/internal/config"
 	"github.com/VaibhavSingh79/stu-api/internal/http/handlers/student"
+	"github.com/VaibhavSingh79/stu-api/internal/storage/sqlite"
 )
 
 func main() {
@@ -19,10 +20,16 @@ func main() {
 	// load config
 	cfg := config.MustLoad()
 	//database setup
+	storage, err := sqlite.New(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	slog.Info("storage initialized", slog.String("env", cfg.ENV), slog.String("version", "1.0.0"))
 	//setup router
 	router := http.NewServeMux() //Mux used to create a new HTTP request, responsible for directing incoming HTTP requests to diff handlers based on urls
 
-	router.HandleFunc("POST /api/students", student.New())
+	router.HandleFunc("POST /api/students", student.New(storage))
 
 	//setup server
 	server := http.Server{
@@ -38,7 +45,7 @@ func main() {
 	//graceful shutdown
 	go func() {
 		err := server.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil {
 			log.Fatal("Failed to start server", err)
 		}
 	}()
@@ -49,7 +56,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := server.Shutdown(ctx)
+	err = server.Shutdown(ctx)
 	if err != nil {
 		slog.Error("Failed to shutdown server", slog.String("error", err.Error()))
 	}
