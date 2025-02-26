@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/VaibhavSingh79/stu-api/internal/config"
+	"github.com/VaibhavSingh79/stu-api/internal/http/handlers/student"
 )
 
 func main() {
@@ -21,9 +22,7 @@ func main() {
 	//setup router
 	router := http.NewServeMux() //Mux used to create a new HTTP request, responsible for directing incoming HTTP requests to diff handlers based on urls
 
-	router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("How have you been doing welcome to stud api")) // w is the response writer and r is the request
-	})
+	router.HandleFunc("POST /api/students", student.New())
 
 	//setup server
 	server := http.Server{
@@ -36,10 +35,11 @@ func main() {
 
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
+	//graceful shutdown
 	go func() {
 		err := server.ListenAndServe()
-		if err != nil {
-			log.Fatal("Failed to start server")
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal("Failed to start server", err)
 		}
 	}()
 	<-done
