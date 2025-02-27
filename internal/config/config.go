@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -22,27 +23,38 @@ type Config struct {
 func MustLoad() *Config {
 	var configPath string
 
-	configPath = os.Getenv("CONFIG_PATH") // get config path from env, os.Getenv is used to get the value of the environment variable.
+	// 1. Get CONFIG_PATH from environment
+	configPath = os.Getenv("CONFIG_PATH")
 
+	// 2. Get --config flag if CONFIG_PATH is not set
 	if configPath == "" {
-		flags := flag.String("config", "", "path to the config file ") // flag.String is used to define a string flag with specified name, default value, and usage string.
-		flag.Parse()                                                   // flag.Parse is used to parse the command-line flags.
+		flags := flag.String("config", "", "path to the config file")
+		flag.Parse()
+		configPath = *flags
+	}
 
-		configPath = *flags // get config path from flag.
-
-		if configPath == "" {
-			log.Fatal("Config path is not set") // log.Fatal is used to log the error message and exit the program.
+	// 3. Default fallback to root-based relative path (config/local.yaml)
+	if configPath == "" {
+		// Find the project's root directory (assumes binary is in cmd/stu-api/)
+		exePath, err := os.Executable()
+		if err != nil {
+			log.Fatalf("Failed to determine executable path: %v", err)
 		}
+		projectRoot := filepath.Join(filepath.Dir(exePath), "../../")
+		configPath = filepath.Join(projectRoot, "config/local.yaml")
 	}
+
+	// Check if the config file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Fatalf("config file does not exist: %s", configPath) //fatalf is used to log the error message and exit the program.
+		log.Fatalf("Config file does not exist: %s", configPath)
 	}
 
+	// Parse the config with cleanenv
 	var cfg Config
-
 	err := cleanenv.ReadConfig(configPath, &cfg)
 	if err != nil {
-		log.Fatalf("cannot read config file: %s", err.Error())
+		log.Fatalf("Cannot read config file: %s", err.Error())
 	}
+
 	return &cfg
 }
